@@ -1,0 +1,375 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  TRAINER
+  STUDENT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum TrainerStudentStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
+}
+
+enum WorkoutPlanVisibility {
+  PRIVATE
+  TRAINER_ONLY
+  PUBLIC
+}
+
+enum WorkoutSessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum PostVisibility {
+  PRIVATE
+  FRIENDS
+  PUBLIC
+}
+
+enum MediaKind {
+  AVATAR
+  EXERCISE_IMAGE
+  EXERCISE_VIDEO
+  POST_IMAGE
+  POST_VIDEO
+}
+
+enum NotificationType {
+  TRAINING_REMINDER
+  TRAINER_MESSAGE
+  POST_LIKE
+  POST_COMMENT
+  FRIEND_REQUEST
+  SYSTEM
+}
+
+model User {
+  id                   String            @id @default(cuid())
+  email                String            @unique
+  username             String?           @unique
+  passwordHash         String
+  fullName             String
+  phone                String?
+  avatarUrl            String?
+  bio                  String?
+  role                 UserRole          @default(STUDENT)
+  status               UserStatus        @default(ACTIVE)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  refreshTokens        RefreshToken[]
+  trainerProfile       TrainerProfile?
+  studentProfile       StudentProfile?
+  trainerRelationships TrainerStudent[]  @relation("TrainerRelationships")
+  studentRelationships TrainerStudent[]  @relation("StudentRelationships")
+  trainerWorkoutPlans  WorkoutPlan[]     @relation("PlanTrainer")
+  studentWorkoutPlans  WorkoutPlan[]     @relation("PlanStudent")
+  workoutSessions      WorkoutSession[]
+  posts                Post[]
+  comments             Comment[]
+  postLikes            PostLike[]
+  requestedFriendships Friendship[]      @relation("FriendshipRequester")
+  receivedFriendships  Friendship[]      @relation("FriendshipAddressee")
+  notifications        Notification[]
+  deviceTokens         DeviceToken[]
+  mediaAssets          MediaAsset[]
+
+  @@index([role, status])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model TrainerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  specialties     String[]
+  yearsExperience Int?
+  cref            String?
+  priceNote       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StudentProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  heightCm       Float?
+  weightKg       Float?
+  targetWeightKg Float?
+  limitations    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TrainerStudent {
+  id        String               @id @default(cuid())
+  trainerId String
+  studentId String
+  status    TrainerStudentStatus @default(PENDING)
+  startedAt DateTime?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  trainer   User                 @relation("TrainerRelationships", fields: [trainerId], references: [id], onDelete: Cascade)
+  student   User                 @relation("StudentRelationships", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([trainerId, studentId])
+  @@index([trainerId, status])
+  @@index([studentId, status])
+}
+
+model WorkoutPlan {
+  id          String                @id @default(cuid())
+  trainerId   String
+  studentId   String?
+  title       String
+  description String?
+  goal        String?
+  visibility  WorkoutPlanVisibility @default(TRAINER_ONLY)
+  isTemplate  Boolean               @default(false)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  trainer     User                  @relation("PlanTrainer", fields: [trainerId], references: [id], onDelete: Cascade)
+  student     User?                 @relation("PlanStudent", fields: [studentId], references: [id], onDelete: SetNull)
+  days        WorkoutDay[]
+  sessions    WorkoutSession[]
+
+  @@index([trainerId, visibility])
+  @@index([studentId])
+  @@index([isTemplate])
+}
+
+model WorkoutDay {
+  id               String            @id @default(cuid())
+  workoutPlanId    String
+  weekDay          Int
+  order            Int
+  title            String
+  focus            String
+  notes            String?
+  estimatedMinutes Int
+  workoutPlan      WorkoutPlan       @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  exercises        WorkoutExercise[]
+  sessions         WorkoutSession[]
+
+  @@unique([workoutPlanId, weekDay])
+  @@index([workoutPlanId, order])
+}
+
+model ExerciseLibrary {
+  id              String            @id @default(cuid())
+  name            String
+  slug            String            @unique
+  muscleGroup     String
+  equipment       String?
+  instructions    String
+  defaultMediaUrl String?
+  defaultThumbUrl String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  workoutItems    WorkoutExercise[]
+
+  @@index([muscleGroup])
+  @@index([name])
+}
+
+model WorkoutExercise {
+  id                  String           @id @default(cuid())
+  workoutDayId        String
+  exerciseLibraryId   String?
+  order               Int
+  nameSnapshot        String
+  muscleGroupSnapshot String?
+  sets                Int
+  reps                String
+  restSeconds         Int
+  tempo               String?
+  rir                 Int?
+  notes               String?
+  mediaUrl            String?
+  thumbUrl            String?
+  workoutDay          WorkoutDay       @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  exerciseLibrary     ExerciseLibrary? @relation(fields: [exerciseLibraryId], references: [id], onDelete: SetNull)
+  workoutSets         WorkoutSet[]
+
+  @@unique([workoutDayId, order])
+  @@index([exerciseLibraryId])
+}
+
+model WorkoutSession {
+  id              String               @id @default(cuid())
+  userId          String
+  workoutPlanId   String?
+  workoutDayId    String?
+  status          WorkoutSessionStatus @default(IN_PROGRESS)
+  startedAt       DateTime
+  finishedAt      DateTime?
+  durationSeconds Int?
+  feelingPre      Int?
+  feelingPost     Int?
+  notes           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutPlan     WorkoutPlan?         @relation(fields: [workoutPlanId], references: [id], onDelete: SetNull)
+  workoutDay      WorkoutDay?          @relation(fields: [workoutDayId], references: [id], onDelete: SetNull)
+  sets            WorkoutSet[]
+  posts           Post[]
+
+  @@index([userId, status])
+  @@index([workoutPlanId])
+  @@index([workoutDayId])
+}
+
+model WorkoutSet {
+  id                String          @id @default(cuid())
+  workoutSessionId  String
+  workoutExerciseId String
+  order             Int
+  targetReps        Int?
+  actualReps        Int?
+  targetLoadKg      Float?
+  actualLoadKg      Float?
+  restSeconds       Int?
+  completedAt       DateTime?
+  isWarmup          Boolean         @default(false)
+  workoutSession    WorkoutSession  @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutSessionId, workoutExerciseId, order])
+  @@index([workoutExerciseId])
+}
+
+model Post {
+  id               String          @id @default(cuid())
+  userId           String
+  workoutSessionId String?
+  mediaUrl         String?
+  thumbUrl         String?
+  mediaKind        MediaKind?
+  caption          String?
+  visibility       PostVisibility  @default(FRIENDS)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutSession   WorkoutSession? @relation(fields: [workoutSessionId], references: [id], onDelete: SetNull)
+  comments         Comment[]
+  likes            PostLike[]
+
+  @@index([userId, visibility])
+  @@index([workoutSessionId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([userId])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  requester   User     @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User     @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([status])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model MediaAsset {
+  id        String    @id @default(cuid())
+  userId    String
+  kind      MediaKind
+  provider  String
+  bucket    String
+  objectKey String
+  url       String
+  mimeType  String?
+  sizeBytes Int?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+  @@index([objectKey])
+}
