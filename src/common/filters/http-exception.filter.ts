@@ -18,10 +18,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     reply.status(status).send({
       success: false,
       error: {
-        statusCode: status,
-        message: payload?.message ?? (exception instanceof Error ? exception.message : 'Internal server error'),
         code: payload?.error ?? (exception instanceof HttpException ? exception.name : 'InternalServerError'),
+        message: payload?.message ?? (exception instanceof Error ? exception.message : 'Internal server error'),
         details: payload && 'message' in payload ? payload : undefined,
+        requestId: request.id,
+        statusCode: status,
         timestamp: new Date().toISOString(),
         path: request.url,
       },

@@ -7,13 +7,13 @@ export class UpdateStudentProfileDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  heightCm?: number;
+  currentHeightCm?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  weightKg?: number;
+  currentWeightKg?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

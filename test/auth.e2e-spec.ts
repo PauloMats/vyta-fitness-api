@@ -21,7 +21,7 @@ describe('Auth (e2e)', () => {
   });
 
   it('registers, logs in, refreshes and returns the current user', async () => {
-    const registerResponse = await request(app.getHttpServer()).post('/api/auth/register').send({
+    const registerResponse = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
       email: 'student.auth@vyta.app',
       fullName: 'Student Auth',
       password: 'Vyta@1234',
@@ -31,7 +31,7 @@ describe('Auth (e2e)', () => {
     expect(registerResponse.status).toBe(201);
     expect(registerResponse.body.data.user.email).toBe('student.auth@vyta.app');
 
-    const loginResponse = await request(app.getHttpServer()).post('/api/auth/login').send({
+    const loginResponse = await request(app.getHttpServer()).post('/api/v1/auth/login').send({
       email: 'student.auth@vyta.app',
       password: 'Vyta@1234',
     });
@@ -40,17 +40,23 @@ describe('Auth (e2e)', () => {
     expect(loginResponse.body.data.accessToken).toBeDefined();
 
     const meResponse = await request(app.getHttpServer())
-      .get('/api/auth/me')
+      .get('/api/v1/auth/me')
       .set('Authorization', `Bearer ${loginResponse.body.data.accessToken}`);
 
     expect(meResponse.status).toBe(200);
     expect(meResponse.body.data.email).toBe('student.auth@vyta.app');
 
-    const refreshResponse = await request(app.getHttpServer()).post('/api/auth/refresh').send({
+    const refreshResponse = await request(app.getHttpServer()).post('/api/v1/auth/refresh').send({
       refreshToken: loginResponse.body.data.refreshToken,
     });
 
     expect(refreshResponse.status).toBe(201);
     expect(refreshResponse.body.data.accessToken).toBeDefined();
+
+    const reusedRefreshResponse = await request(app.getHttpServer()).post('/api/v1/auth/refresh').send({
+      refreshToken: loginResponse.body.data.refreshToken,
+    });
+
+    expect(reusedRefreshResponse.status).toBe(401);
   });
 });

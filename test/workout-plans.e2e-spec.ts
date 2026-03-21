@@ -45,7 +45,7 @@ describe('Workout plans (e2e)', () => {
     });
 
     const createResponse = await request(app.getHttpServer())
-      .post('/api/workout-plans')
+      .post('/api/v1/workout-plans')
       .set('Authorization', `Bearer ${trainer.accessToken}`)
       .send({
         title: 'Plano A',
@@ -78,14 +78,14 @@ describe('Workout plans (e2e)', () => {
     expect(createResponse.body.data.days).toHaveLength(1);
 
     const listResponse = await request(app.getHttpServer())
-      .get('/api/workout-plans')
+      .get('/api/v1/workout-plans')
       .set('Authorization', `Bearer ${trainer.accessToken}`);
 
     expect(listResponse.status).toBe(200);
     expect(listResponse.body.data).toHaveLength(1);
 
     const updateResponse = await request(app.getHttpServer())
-      .patch(`/api/workout-plans/${planId}`)
+      .patch(`/api/v1/workout-plans/${planId}`)
       .set('Authorization', `Bearer ${trainer.accessToken}`)
       .send({ title: 'Plano A atualizado' });
 
@@ -93,7 +93,7 @@ describe('Workout plans (e2e)', () => {
     expect(updateResponse.body.data.title).toBe('Plano A atualizado');
 
     const deleteResponse = await request(app.getHttpServer())
-      .delete(`/api/workout-plans/${planId}`)
+      .delete(`/api/v1/workout-plans/${planId}`)
       .set('Authorization', `Bearer ${trainer.accessToken}`);
 
     expect(deleteResponse.status).toBe(200);

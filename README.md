@@ -9,7 +9,9 @@ Backend REST production-ready para o produto fitness VYTA, construído com NestJ
 - pnpm
 - Prisma ORM + PostgreSQL
 - JWT access + refresh tokens
+- Rotação de refresh token por sessão/device, detecção de reuse e revogação por família
 - Argon2 para hashing
+- API versionada em `/api/v1`
 - Swagger em `/docs`
 - Healthcheck em `/api/health`
 - Docker multi-stage + docker-compose
@@ -19,6 +21,7 @@ Backend REST production-ready para o produto fitness VYTA, construído com NestJ
 ```text
 src/
   auth/
+  assessments/
   comments/
   common/
   config/
@@ -50,9 +53,9 @@ src/
    ```bash
    pnpm prisma:generate
    ```
-4. Rode a migration inicial:
+4. Aplique as migrations:
    ```bash
-   pnpm prisma:migrate:dev --name init
+   pnpm prisma:migrate:deploy
    ```
 5. Rode o seed:
    ```bash
@@ -82,22 +85,34 @@ docker compose up --build
 
 ## Autenticação
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/refresh`
-- `POST /api/auth/logout`
-- `GET /api/auth/me`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/me`
 
 Todos os demais endpoints usam JWT Bearer por padrão.
+
+## Avaliações físicas
+
+- `POST /api/v1/assessments`
+- `PATCH /api/v1/assessments/:id`
+- `POST /api/v1/assessments/:id/complete`
+- `GET /api/v1/assessments/:id`
+- `GET /api/v1/students/:studentId/assessments`
+- `GET /api/v1/students/:studentId/progress`
+
+O domínio `PhysicalAssessment` separa perfil atual do aluno e histórico técnico. O `StudentProfile` agora guarda apenas o resumo corrente.
 
 ## Qualidade
 
 - ValidationPipe global com `whitelist`, `forbidNonWhitelisted` e `transform`
-- Filtro global de exceções
+- Filtros globais para exceções HTTP e Prisma
 - Interceptor global de resposta
 - Paginação padronizada com `page` e `limit`
-- Seeds realistas para admin, trainers, students, planos, sessões e feed
-- Testes e2e mínimos para auth, workout plans e workout sessions
+- Migrations customizadas com `citext`, constraints e índices parciais do PostgreSQL
+- Seeds realistas para admin, trainers, students, planos, sessões, avaliações e feed
+- Testes e2e para auth, assessments, workout plans e workout sessions
 
 ## Railway
 

@@ -19,12 +19,12 @@ export class WorkoutDaysService {
     }
     this.workoutPlansService.assertCanManagePlan(user, plan);
 
-    const existingDay = await this.prisma.workoutDay.findUnique({
-      where: { workoutPlanId_weekDay: { workoutPlanId: planId, weekDay: dto.weekDay } },
+    const existingDay = await this.prisma.workoutDay.findFirst({
+      where: { workoutPlanId: planId, order: dto.order },
       select: { id: true },
     });
     if (existingDay) {
-      throw new ConflictException('A workout day already exists for this weekday');
+      throw new ConflictException('A workout day already exists for this order');
     }
 
     return this.prisma.workoutDay.create({
@@ -57,12 +57,16 @@ export class WorkoutDaysService {
     }
     this.workoutPlansService.assertCanManagePlan(user, day.workoutPlan);
 
-    if (dto.weekDay && dto.weekDay !== day.weekDay) {
-      const duplicate = await this.prisma.workoutDay.findUnique({
-        where: { workoutPlanId_weekDay: { workoutPlanId: day.workoutPlanId, weekDay: dto.weekDay } },
+    if (dto.order && dto.order !== day.order) {
+      const duplicate = await this.prisma.workoutDay.findFirst({
+        where: {
+          workoutPlanId: day.workoutPlanId,
+          order: dto.order,
+          id: { not: id },
+        },
       });
       if (duplicate) {
-        throw new ConflictException('A workout day already exists for this weekday');
+        throw new ConflictException('A workout day already exists for this order');
       }
     }
 
@@ -71,8 +75,11 @@ export class WorkoutDaysService {
         await tx.workoutExercise.deleteMany({ where: { workoutDayId: id } });
       }
 
-      return tx.workoutDay.update({
-        where: { id },
+      const updated = await tx.workoutDay.updateMany({
+        where: {
+          id,
+          ...(dto.version ? { version: dto.version } : {}),
+        },
         data: {
           weekDay: dto.weekDay,
           order: dto.order,
@@ -80,8 +87,25 @@ export class WorkoutDaysService {
           focus: dto.focus,
           notes: dto.notes,
           estimatedMinutes: dto.estimatedMinutes,
-          exercises: dto.exercises ? { create: dto.exercises } : undefined,
+          version: { increment: 1 },
         },
+      });
+
+      if (updated.count === 0) {
+        throw new ConflictException('Workout day was updated by another process');
+      }
+
+      if (dto.exercises) {
+        await tx.workoutExercise.createMany({
+          data: dto.exercises.map((exercise) => ({
+            workoutDayId: id,
+            ...exercise,
+          })),
+        });
+      }
+
+      return tx.workoutDay.findUniqueOrThrow({
+        where: { id },
         include: {
           exercises: {
             include: { exerciseLibrary: true },

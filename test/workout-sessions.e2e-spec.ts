@@ -45,7 +45,7 @@ describe('Workout sessions (e2e)', () => {
     });
 
     const planResponse = await request(app.getHttpServer())
-      .post('/api/workout-plans')
+      .post('/api/v1/workout-plans')
       .set('Authorization', `Bearer ${trainer.accessToken}`)
       .send({
         title: 'Plano Sessao',
@@ -76,7 +76,7 @@ describe('Workout sessions (e2e)', () => {
     const exerciseId = planResponse.body.data.days[0].exercises[0].id;
 
     const startResponse = await request(app.getHttpServer())
-      .post('/api/workout-sessions/start')
+      .post('/api/v1/workout-sessions/start')
       .set('Authorization', `Bearer ${student.accessToken}`)
       .send({
         workoutPlanId: planResponse.body.data.id,
@@ -88,7 +88,7 @@ describe('Workout sessions (e2e)', () => {
     const sessionId = startResponse.body.data.id;
 
     const setResponse = await request(app.getHttpServer())
-      .post(`/api/workout-sessions/${sessionId}/sets`)
+      .post(`/api/v1/workout-sessions/${sessionId}/sets`)
       .set('Authorization', `Bearer ${student.accessToken}`)
       .send({
         workoutExerciseId: exerciseId,
@@ -102,7 +102,7 @@ describe('Workout sessions (e2e)', () => {
     expect(setResponse.body.data.workoutExerciseId).toBe(exerciseId);
 
     const finishResponse = await request(app.getHttpServer())
-      .patch(`/api/workout-sessions/${sessionId}/finish`)
+      .patch(`/api/v1/workout-sessions/${sessionId}/finish`)
       .set('Authorization', `Bearer ${student.accessToken}`)
       .send({ feelingPost: 5, notes: 'Bom treino' });
 
@@ -110,7 +110,7 @@ describe('Workout sessions (e2e)', () => {
     expect(finishResponse.body.data.status).toBe('COMPLETED');
 
     const listResponse = await request(app.getHttpServer())
-      .get('/api/workout-sessions/me')
+      .get('/api/v1/workout-sessions/me')
       .set('Authorization', `Bearer ${student.accessToken}`);
 
     expect(listResponse.status).toBe(200);

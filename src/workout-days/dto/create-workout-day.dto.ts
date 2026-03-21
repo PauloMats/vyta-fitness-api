@@ -1,12 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsInt, IsOptional, IsString, MaxLength, Min, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { CreateWorkoutExerciseDto } from './create-workout-exercise.dto';
 
 export class CreateWorkoutDayDto {
   @ApiProperty()
   @IsInt()
   @Min(1)
+  @Max(7)
   weekDay!: number;
 
   @ApiProperty()

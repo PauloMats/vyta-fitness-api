@@ -1,4 +1,7 @@
 import {
+  AssessmentStatus,
+  AssessmentType,
+  BodyCompositionMethod,
   NotificationType,
   PostVisibility,
   PrismaClient,
@@ -17,6 +20,16 @@ async function cleanDatabase() {
     prisma.comment.deleteMany(),
     prisma.postLike.deleteMany(),
     prisma.post.deleteMany(),
+    prisma.assessmentReport.deleteMany(),
+    prisma.assessmentPhoto.deleteMany(),
+    prisma.assessmentFitnessTest.deleteMany(),
+    prisma.assessmentBodyComposition.deleteMany(),
+    prisma.assessmentSkinfold.deleteMany(),
+    prisma.assessmentCircumference.deleteMany(),
+    prisma.assessmentVitals.deleteMany(),
+    prisma.assessmentAnamnesis.deleteMany(),
+    prisma.assessmentScreening.deleteMany(),
+    prisma.physicalAssessment.deleteMany(),
     prisma.workoutSet.deleteMany(),
     prisma.workoutSession.deleteMany(),
     prisma.workoutExercise.deleteMany(),
@@ -153,8 +166,8 @@ async function main() {
           bio: student.bio,
           studentProfile: {
             create: {
-              heightCm: student.heightCm,
-              weightKg: student.weightKg,
+              currentHeightCm: student.heightCm,
+              currentWeightKg: student.weightKg,
               targetWeightKg: student.targetWeightKg,
               limitations: student.limitations,
             },
@@ -512,9 +525,9 @@ async function main() {
 
   await prisma.friendship.createMany({
     data: [
-      { requesterId: luana.id, addresseeId: bia.id, status: 'ACCEPTED' },
-      { requesterId: caio.id, addresseeId: bia.id, status: 'PENDING' },
-      { requesterId: marina.id, addresseeId: luana.id, status: 'ACCEPTED' },
+      { requesterId: luana.id, addresseeId: bia.id, pairKey: [luana.id, bia.id].sort().join(':'), status: 'ACCEPTED' },
+      { requesterId: caio.id, addresseeId: bia.id, pairKey: [caio.id, bia.id].sort().join(':'), status: 'PENDING' },
+      { requesterId: marina.id, addresseeId: luana.id, pairKey: [marina.id, luana.id].sort().join(':'), status: 'ACCEPTED' },
     ],
   });
 
@@ -548,6 +561,185 @@ async function main() {
         sizeBytes: 128000,
       },
     ],
+  });
+
+  await prisma.physicalAssessment.create({
+    data: {
+      studentId: luana.id,
+      trainerId: trainerOne.id,
+      status: AssessmentStatus.COMPLETED,
+      assessmentDate: new Date('2026-02-01T09:00:00.000Z'),
+      assessmentType: AssessmentType.INITIAL,
+      notes: 'Base inicial para hipertrofia e estabilidade lombar.',
+      completedAt: new Date('2026-02-01T10:00:00.000Z'),
+      screening: {
+        create: {
+          symptoms: 'Sem sinais agudos.',
+          knownConditions: 'Dor lombar leve recorrente.',
+          medications: 'Nenhuma.',
+          riskFlags: ['low_back'],
+          restrictions: 'Evitar pico de volume sem progressao.',
+        },
+      },
+      anamnesis: {
+        create: {
+          objectivePrimary: 'Hipertrofia com consistencia',
+          objectiveSecondary: 'Melhorar postura',
+          activityLevel: 'moderado',
+          sleepQuality: 'regular',
+          stressLevel: 5,
+          familyHistory: 'Historico familiar de hipertensao.',
+          injuriesHistory: 'Lombalgia ocasional.',
+          limitations: 'Evitar compressao excessiva.',
+        },
+      },
+      vitals: {
+        create: {
+          weightKg: 62.0,
+          heightCm: 165.0,
+          bmi: 22.77,
+          restingHeartRate: 64,
+          systolicBp: 112,
+          diastolicBp: 72,
+        },
+      },
+      circumferences: {
+        create: [
+          { kind: 'WAIST', valueCm: 74.5, order: 1 },
+          { kind: 'HIP', valueCm: 98.0, order: 2 },
+          { kind: 'THIGH', valueCm: 57.4, order: 3, side: 'RIGHT' },
+        ],
+      },
+      bodyComposition: {
+        create: {
+          method: BodyCompositionMethod.BIA,
+          protocol: 'Bioimpedancia padrao',
+          bodyFatPercent: 24.4,
+          fatMassKg: 15.1,
+          leanMassKg: 46.9,
+          isComparable: true,
+        },
+      },
+      report: {
+        create: {
+          summary: 'Boa base geral, com foco em consistencia e controle lombar.',
+          recommendations: 'Progressao de carga gradual e fortalecimento de core.',
+          warnings: 'Monitorar desconforto lombar em dias de hinge.',
+          generatedAt: new Date('2026-02-01T10:05:00.000Z'),
+        },
+      },
+    },
+  });
+
+  await prisma.physicalAssessment.create({
+    data: {
+      studentId: caio.id,
+      trainerId: trainerTwo.id,
+      status: AssessmentStatus.COMPLETED,
+      assessmentDate: new Date('2026-02-15T08:30:00.000Z'),
+      assessmentType: AssessmentType.INITIAL,
+      notes: 'Entrada focada em corrida de 10km e composicao corporal.',
+      completedAt: new Date('2026-02-15T09:10:00.000Z'),
+      screening: {
+        create: {
+          symptoms: 'Sem sintomas limitantes.',
+          knownConditions: 'Sem comorbidades relevantes.',
+          medications: 'Nenhuma.',
+          riskFlags: ['running_volume'],
+        },
+      },
+      anamnesis: {
+        create: {
+          objectivePrimary: 'Melhorar pace de 10km',
+          objectiveSecondary: 'Reduzir gordura corporal',
+          activityLevel: 'alto',
+          sleepQuality: 'boa',
+          stressLevel: 4,
+          familyHistory: 'Sem observacoes relevantes.',
+        },
+      },
+      vitals: {
+        create: {
+          weightKg: 82.0,
+          heightCm: 178.0,
+          bmi: 25.88,
+          restingHeartRate: 58,
+          systolicBp: 118,
+          diastolicBp: 76,
+        },
+      },
+      circumferences: {
+        create: [
+          { kind: 'WAIST', valueCm: 84.2, order: 1 },
+          { kind: 'CHEST', valueCm: 101.5, order: 2 },
+        ],
+      },
+      bodyComposition: {
+        create: {
+          method: BodyCompositionMethod.BIA,
+          protocol: 'Bioimpedancia atleta',
+          bodyFatPercent: 19.4,
+          fatMassKg: 15.9,
+          leanMassKg: 66.1,
+          isComparable: true,
+        },
+      },
+    },
+  });
+
+  await prisma.physicalAssessment.create({
+    data: {
+      studentId: marina.id,
+      trainerId: trainerOne.id,
+      status: AssessmentStatus.COMPLETED,
+      assessmentDate: new Date('2026-03-05T11:00:00.000Z'),
+      assessmentType: AssessmentType.REASSESSMENT,
+      notes: 'Reavaliacao apos ciclo inicial de recomposicao.',
+      completedAt: new Date('2026-03-05T11:40:00.000Z'),
+      vitals: {
+        create: {
+          weightKg: 70.4,
+          heightCm: 170.0,
+          bmi: 24.36,
+          restingHeartRate: 66,
+        },
+      },
+      circumferences: {
+        create: [
+          { kind: 'WAIST', valueCm: 77.8, order: 1 },
+          { kind: 'HIP', valueCm: 102.1, order: 2 },
+        ],
+      },
+      bodyComposition: {
+        create: {
+          method: BodyCompositionMethod.SKINFOLD_JP7,
+          protocol: 'Jackson Pollock 7 dobras',
+          equation: 'JP7',
+          bodyFatPercent: 26.1,
+          fatMassKg: 18.4,
+          leanMassKg: 52.0,
+          isComparable: true,
+        },
+      },
+      fitnessTests: {
+        create: [
+          {
+            category: 'MOBILITY',
+            testCode: 'overhead-squat',
+            name: 'Overhead Squat',
+            rawValue: 'leve valgo dinamico',
+            score: 'moderado',
+          },
+        ],
+      },
+      report: {
+        create: {
+          summary: 'Boa adesao ao ciclo inicial e melhora visivel na cintura.',
+          recommendations: 'Manter progressao e elevar volume de gluteos/posterior.',
+          generatedAt: new Date('2026-03-05T11:45:00.000Z'),
+        },
+      },
+    },
   });
 
   console.log(`Seed concluido: ${admin.email}, ${trainerOne.email}, ${trainerTwo.email}, ${planThree.title}`);

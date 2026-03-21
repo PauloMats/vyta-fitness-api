@@ -55,14 +55,14 @@ export class StudentsService {
         studentProfile: {
           upsert: {
             create: {
-              heightCm: dto.heightCm,
-              weightKg: dto.weightKg,
+              currentHeightCm: dto.currentHeightCm,
+              currentWeightKg: dto.currentWeightKg,
               targetWeightKg: dto.targetWeightKg,
               limitations: dto.limitations,
             },
             update: {
-              heightCm: dto.heightCm,
-              weightKg: dto.weightKg,
+              currentHeightCm: dto.currentHeightCm,
+              currentWeightKg: dto.currentWeightKg,
               targetWeightKg: dto.targetWeightKg,
               limitations: dto.limitations,
             },

@@ -1,12 +1,15 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma, UserRole, UserStatus } from '@prisma/client';
+import { type RefreshToken, UserRole, UserStatus } from '@prisma/client';
 import * as argon2 from 'argon2';
+import type { FastifyRequest } from 'fastify';
+import { randomUUID } from 'node:crypto';
 import type { JwtUser } from '../common/types/jwt-user.type';
 import { userProfileInclude } from '../common/utils/prisma-selects';
 import { sanitizeUser } from '../common/utils/serialization.util';
@@ -24,11 +27,14 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, request: FastifyRequest) {
     const role = dto.role === UserRole.TRAINER ? UserRole.TRAINER : UserRole.STUDENT;
+    const email = this.normalizeEmail(dto.email);
+    const username = this.normalizeUsername(dto.username);
     const existingUser = await this.prisma.user.findFirst({
       where: {
-        OR: [{ email: dto.email }, ...(dto.username ? [{ username: dto.username }] : [])],
+        deletedAt: null,
+        OR: [{ email }, ...(username ? [{ username }] : [])],
       },
       select: { id: true },
     });
@@ -40,30 +46,37 @@ export class AuthService {
     const passwordHash = await argon2.hash(dto.password);
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
-        username: dto.username,
+        email,
+        username,
         passwordHash,
         fullName: dto.fullName,
         phone: dto.phone,
         bio: dto.bio,
         role,
         status: UserStatus.ACTIVE,
+        passwordChangedAt: new Date(),
+        lastLoginAt: new Date(),
         trainerProfile: role === UserRole.TRAINER ? { create: { specialties: [] } } : undefined,
         studentProfile: role === UserRole.STUDENT ? { create: {} } : undefined,
       },
       include: userProfileInclude,
     });
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      this.extractSessionContext(request),
+    );
     return {
       user: sanitizeUser(user),
       ...tokens,
     };
   }
 
-  async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+  async login(dto: LoginDto, request: FastifyRequest) {
+    const user = await this.prisma.user.findFirst({
+      where: { email: this.normalizeEmail(dto.email), deletedAt: null },
       include: userProfileInclude,
     });
 
@@ -75,56 +88,90 @@ export class AuthService {
       throw new UnauthorizedException('User is not active');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      this.extractSessionContext(request, dto.deviceId),
+    );
     return {
       user: sanitizeUser(user),
       ...tokens,
     };
   }
 
-  async refresh(dto: RefreshTokenDto) {
+  async refresh(dto: RefreshTokenDto, request: FastifyRequest) {
     const payload = await this.verifyRefreshToken(dto.refreshToken);
-    const activeTokens = await this.prisma.refreshToken.findMany({
-      where: {
-        userId: payload.sub,
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
+    const storedToken = await this.prisma.refreshToken.findUnique({
+      where: { id: payload.jti },
     });
 
-    const matchedToken = await this.findMatchingRefreshToken(activeTokens, dto.refreshToken);
-    if (!matchedToken) {
+    if (!storedToken || storedToken.userId !== payload.sub || storedToken.sessionId !== payload.sid) {
       throw new UnauthorizedException('Refresh token is invalid');
     }
 
-    await this.prisma.refreshToken.update({
-      where: { id: matchedToken.id },
-      data: { revokedAt: new Date() },
-    });
+    if (storedToken.revokedAt) {
+      await this.revokeTokenFamily(storedToken.familyId, 'reuse_detected');
+      throw new UnauthorizedException('Refresh token reuse detected');
+    }
 
-    const user = await this.prisma.user.findUniqueOrThrow({
-      where: { id: payload.sub },
+    const isMatch = await argon2.verify(storedToken.tokenHash, dto.refreshToken);
+    if (!isMatch) {
+      await this.revokeTokenFamily(storedToken.familyId, 'invalid_hash');
+      throw new UnauthorizedException('Refresh token is invalid');
+    }
+
+    if (storedToken.expiresAt <= new Date()) {
+      await this.prisma.refreshToken.update({
+        where: { id: storedToken.id },
+        data: { revokedAt: new Date(), revokedReason: 'expired', lastUsedAt: new Date() },
+      });
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { id: payload.sub, deletedAt: null },
       include: userProfileInclude,
     });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.rotateRefreshToken(
+      user.id,
+      user.email,
+      user.role,
+      storedToken,
+      this.extractSessionContext(request, dto.deviceId),
+    );
     return {
       user: sanitizeUser(user),
       ...tokens,
     };
   }
 
-  async logout(user: JwtUser, dto?: RefreshTokenDto) {
+  async logout(user: JwtUser, dto: RefreshTokenDto | undefined, request: FastifyRequest) {
     if (dto?.refreshToken) {
-      const activeTokens = await this.prisma.refreshToken.findMany({
-        where: { userId: user.id, revokedAt: null, expiresAt: { gt: new Date() } },
+      const payload = await this.verifyRefreshToken(dto.refreshToken);
+      const token = await this.prisma.refreshToken.findUnique({
+        where: { id: payload.jti },
       });
-      const matchedToken = await this.findMatchingRefreshToken(activeTokens, dto.refreshToken);
 
-      if (matchedToken) {
+      if (token && token.userId === user.id) {
         await this.prisma.refreshToken.update({
-          where: { id: matchedToken.id },
-          data: { revokedAt: new Date() },
+          where: { id: token.id },
+          data: {
+            revokedAt: new Date(),
+            revokedReason: 'logout',
+            lastUsedAt: new Date(),
+            ipAddress: request.ip,
+            userAgent: request.headers['user-agent'],
+          },
         });
         return { message: 'Logged out successfully' };
       }
@@ -132,7 +179,7 @@ export class AuthService {
 
     await this.prisma.refreshToken.updateMany({
       where: { userId: user.id, revokedAt: null },
-      data: { revokedAt: new Date() },
+      data: { revokedAt: new Date(), revokedReason: 'logout_all', lastUsedAt: new Date() },
     });
 
     return { message: 'Logged out successfully' };
@@ -165,9 +212,28 @@ export class AuthService {
     return sanitizeUser(user);
   }
 
-  private async generateTokens(userId: string, email: string, role: UserRole) {
+  private async generateTokens(
+    userId: string,
+    email: string,
+    role: UserRole,
+    context: SessionContext,
+  ) {
+    return this.issueTokenPair(userId, email, role, {
+      ...context,
+      sessionId: randomUUID(),
+      familyId: randomUUID(),
+    });
+  }
+
+  private async issueTokenPair(
+    userId: string,
+    email: string,
+    role: UserRole,
+    session: SessionContext & { sessionId: string; familyId: string },
+  ) {
     const accessExpiresIn = this.configService.getOrThrow<TokenDuration>('JWT_ACCESS_TTL');
     const refreshExpiresIn = this.configService.getOrThrow<TokenDuration>('JWT_REFRESH_TTL');
+    const refreshTokenId = randomUUID();
     const payload = { sub: userId, email, role };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -179,7 +245,13 @@ export class AuthService {
         },
       ),
       this.jwtService.signAsync(
-        { ...payload, type: 'refresh' as const },
+        {
+          ...payload,
+          type: 'refresh' as const,
+          jti: refreshTokenId,
+          sid: session.sessionId,
+          fid: session.familyId,
+        },
         {
           secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
           expiresIn: refreshExpiresIn,
@@ -189,8 +261,14 @@ export class AuthService {
 
     await this.prisma.refreshToken.create({
       data: {
+        id: refreshTokenId,
         userId,
         tokenHash: await argon2.hash(refreshToken),
+        sessionId: session.sessionId,
+        familyId: session.familyId,
+        userAgent: session.userAgent,
+        ipAddress: session.ipAddress,
+        deviceId: session.deviceId,
         expiresAt: new Date(Date.now() + durationToMs(refreshExpiresIn)),
       },
     });
@@ -204,24 +282,133 @@ export class AuthService {
         secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
       });
 
-      if (payload.type !== 'refresh') {
+      if (payload.type !== 'refresh' || !('jti' in payload) || !('sid' in payload) || !('fid' in payload)) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      return payload;
+      return payload as RefreshTokenPayload;
     } catch {
       throw new UnauthorizedException('Refresh token is invalid');
     }
   }
 
-  private async findMatchingRefreshToken(tokens: Prisma.RefreshTokenUncheckedCreateInput[], rawToken: string) {
-    for (const token of tokens) {
-      if (await argon2.verify(token.tokenHash, rawToken)) {
-        return token;
-      }
+  private async rotateRefreshToken(
+    userId: string,
+    email: string,
+    role: UserRole,
+    currentToken: RefreshToken,
+    context: SessionContext,
+  ) {
+    const nextRefreshTokenId = randomUUID();
+    const refreshExpiresIn = this.configService.getOrThrow<TokenDuration>('JWT_REFRESH_TTL');
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(
+        { sub: userId, email, role, type: 'access' as const },
+        {
+          secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+          expiresIn: this.configService.getOrThrow<TokenDuration>('JWT_ACCESS_TTL'),
+        },
+      ),
+      this.jwtService.signAsync(
+        {
+          sub: userId,
+          email,
+          role,
+          type: 'refresh' as const,
+          jti: nextRefreshTokenId,
+          sid: currentToken.sessionId,
+          fid: currentToken.familyId,
+        },
+        {
+          secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+          expiresIn: refreshExpiresIn,
+        },
+      ),
+    ]);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.refreshToken.create({
+        data: {
+          id: nextRefreshTokenId,
+          userId,
+          tokenHash: await argon2.hash(refreshToken),
+          sessionId: currentToken.sessionId,
+          familyId: currentToken.familyId,
+          expiresAt: new Date(Date.now() + durationToMs(refreshExpiresIn)),
+          userAgent: context.userAgent ?? currentToken.userAgent,
+          ipAddress: context.ipAddress ?? currentToken.ipAddress,
+          deviceId: context.deviceId ?? currentToken.deviceId,
+        },
+      });
+
+      await tx.refreshToken.update({
+        where: { id: currentToken.id },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'rotated',
+          replacedByTokenId: nextRefreshTokenId,
+          lastUsedAt: new Date(),
+          userAgent: context.userAgent ?? currentToken.userAgent,
+          ipAddress: context.ipAddress ?? currentToken.ipAddress,
+          deviceId: context.deviceId ?? currentToken.deviceId,
+        },
+      });
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  private async revokeTokenFamily(familyId: string | null, reason: string) {
+    if (!familyId) {
+      return;
     }
-    return null;
+
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        familyId,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokedReason: reason,
+        lastUsedAt: new Date(),
+      },
+    });
+  }
+
+  private extractSessionContext(request: FastifyRequest, deviceId?: string): SessionContext {
+    return {
+      deviceId,
+      ipAddress: request.ip,
+      userAgent: typeof request.headers['user-agent'] === 'string' ? request.headers['user-agent'] : undefined,
+    };
+  }
+
+  private normalizeEmail(email: string) {
+    return email.trim().toLowerCase();
+  }
+
+  private normalizeUsername(username?: string | null) {
+    if (!username) {
+      return null;
+    }
+
+    return username.trim().toLowerCase();
   }
 }
 
 type TokenDuration = `${number}${'s' | 'm' | 'h' | 'd'}`;
+type RefreshTokenPayload = {
+  sub: string;
+  type: 'refresh';
+  jti: string;
+  sid: string;
+  fid: string;
+};
+
+type SessionContext = {
+  userAgent?: string;
+  ipAddress?: string;
+  deviceId?: string;
+};

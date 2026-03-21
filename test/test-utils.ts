@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
@@ -17,6 +17,10 @@ export async function createTestApp() {
   });
 
   app.setGlobalPrefix('api');
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -36,6 +40,16 @@ export async function cleanDatabase() {
     prisma.comment.deleteMany(),
     prisma.postLike.deleteMany(),
     prisma.post.deleteMany(),
+    prisma.assessmentReport.deleteMany(),
+    prisma.assessmentPhoto.deleteMany(),
+    prisma.assessmentFitnessTest.deleteMany(),
+    prisma.assessmentBodyComposition.deleteMany(),
+    prisma.assessmentSkinfold.deleteMany(),
+    prisma.assessmentCircumference.deleteMany(),
+    prisma.assessmentVitals.deleteMany(),
+    prisma.assessmentAnamnesis.deleteMany(),
+    prisma.assessmentScreening.deleteMany(),
+    prisma.physicalAssessment.deleteMany(),
     prisma.workoutSet.deleteMany(),
     prisma.workoutSession.deleteMany(),
     prisma.workoutExercise.deleteMany(),
@@ -63,8 +77,8 @@ export async function registerAndLogin(
     role?: 'TRAINER' | 'STUDENT';
   },
 ) {
-  await request(app.getHttpServer()).post('/api/auth/register').send(payload).expect(201);
-  const response = await request(app.getHttpServer()).post('/api/auth/login').send({
+  await request(app.getHttpServer()).post('/api/v1/auth/register').send(payload).expect(201);
+  const response = await request(app.getHttpServer()).post('/api/v1/auth/login').send({
     email: payload.email,
     password: payload.password,
   });

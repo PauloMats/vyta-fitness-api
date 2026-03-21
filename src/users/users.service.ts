@@ -19,7 +19,7 @@ export class UsersService {
   async updateMe(userId: string, dto: UpdateMeDto) {
     if (dto.username) {
       const existingUser = await this.prisma.user.findFirst({
-        where: { username: dto.username, id: { not: userId } },
+        where: { username: dto.username.toLowerCase(), id: { not: userId }, deletedAt: null },
         select: { id: true },
       });
       if (existingUser) {
@@ -29,7 +29,10 @@ export class UsersService {
 
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: dto,
+      data: {
+        ...dto,
+        username: dto.username?.toLowerCase(),
+      },
       include: userProfileInclude,
     });
 

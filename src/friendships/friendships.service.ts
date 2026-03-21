@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { NotificationType, UserRole } from '@prisma/client';
+import { FriendshipStatus, NotificationType, UserRole } from '@prisma/client';
 import type { JwtUser } from '../common/types/jwt-user.type';
 import { buildPagination, paginated } from '../common/utils/pagination.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -30,12 +30,7 @@ export class FriendshipsService {
     }
 
     const existing = await this.prisma.friendship.findFirst({
-      where: {
-        OR: [
-          { requesterId: user.id, addresseeId: dto.addresseeId },
-          { requesterId: dto.addresseeId, addresseeId: user.id },
-        ],
-      },
+      where: { pairKey: this.getPairKey(user.id, dto.addresseeId) },
     });
     if (existing) {
       throw new ConflictException('Friendship already exists');
@@ -45,7 +40,8 @@ export class FriendshipsService {
       data: {
         requesterId: user.id,
         addresseeId: dto.addresseeId,
-        status: 'PENDING',
+        pairKey: this.getPairKey(user.id, dto.addresseeId),
+        status: FriendshipStatus.PENDING,
       },
       include: {
         requester: { select: { id: true, fullName: true, username: true, avatarUrl: true } },
@@ -80,6 +76,10 @@ export class FriendshipsService {
 
     if (user.role !== UserRole.ADMIN && user.id !== friendship.addresseeId) {
       throw new ForbiddenException('Only the addressee or admin can update this friendship');
+    }
+
+    if (friendship.status === FriendshipStatus.BLOCKED && user.role !== UserRole.ADMIN) {
+      throw new ConflictException('Blocked friendships can only be changed by admin');
     }
 
     const updated = await this.prisma.friendship.update({
@@ -117,5 +117,9 @@ export class FriendshipsService {
     });
 
     return paginated(items, meta);
+  }
+
+  private getPairKey(leftUserId: string, rightUserId: string) {
+    return [leftUserId, rightUserId].sort().join(':');
   }
 }

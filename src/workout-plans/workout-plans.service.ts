@@ -106,8 +106,11 @@ export class WorkoutPlansService {
       await this.ensureStudentAssignmentAllowed(user, plan.trainerId, dto.studentId);
     }
 
-    const updated = await this.prisma.workoutPlan.update({
-      where: { id },
+    const result = await this.prisma.workoutPlan.updateMany({
+      where: {
+        id,
+        ...(dto.version ? { version: dto.version } : {}),
+      },
       data: {
         title: dto.title,
         description: dto.description,
@@ -115,11 +118,18 @@ export class WorkoutPlansService {
         visibility: dto.visibility,
         isTemplate: dto.isTemplate,
         studentId: dto.studentId,
+        version: { increment: 1 },
       },
-      include: workoutPlanInclude,
     });
 
-    return updated;
+    if (result.count === 0) {
+      throw new ConflictException('Workout plan was updated by another process');
+    }
+
+    return this.prisma.workoutPlan.findUniqueOrThrow({
+      where: { id },
+      include: workoutPlanInclude,
+    });
   }
 
   async remove(user: JwtUser, id: string) {
