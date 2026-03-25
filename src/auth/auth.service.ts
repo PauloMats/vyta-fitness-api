@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -21,6 +22,8 @@ import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -40,6 +43,7 @@ export class AuthService {
     });
 
     if (existingUser) {
+      this.logger.warn(`Register conflict for email=${email} username=${username ?? 'null'}`);
       throw new ConflictException('Email or username already in use');
     }
 
@@ -68,6 +72,7 @@ export class AuthService {
       user.role,
       this.extractSessionContext(request),
     );
+    this.logger.log(`User registered userId=${user.id} role=${user.role}`);
     return {
       user: sanitizeUser(user),
       ...tokens,
@@ -81,10 +86,12 @@ export class AuthService {
     });
 
     if (!user || !(await argon2.verify(user.passwordHash, dto.password))) {
+      this.logger.warn(`Login failed for email=${this.normalizeEmail(dto.email)}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (user.status !== UserStatus.ACTIVE) {
+      this.logger.warn(`Login blocked for userId=${user.id} status=${user.status}`);
       throw new UnauthorizedException('User is not active');
     }
 
@@ -99,6 +106,7 @@ export class AuthService {
       user.role,
       this.extractSessionContext(request, dto.deviceId),
     );
+    this.logger.log(`Login successful userId=${user.id} role=${user.role}`);
     return {
       user: sanitizeUser(user),
       ...tokens,
@@ -112,17 +120,20 @@ export class AuthService {
     });
 
     if (!storedToken || storedToken.userId !== payload.sub || storedToken.sessionId !== payload.sid) {
+      this.logger.warn(`Refresh failed for userId=${payload.sub}: token not found or session mismatch`);
       throw new UnauthorizedException('Refresh token is invalid');
     }
 
     if (storedToken.revokedAt) {
       await this.revokeTokenFamily(storedToken.familyId, 'reuse_detected');
+      this.logger.warn(`Refresh token reuse detected for userId=${payload.sub} familyId=${storedToken.familyId}`);
       throw new UnauthorizedException('Refresh token reuse detected');
     }
 
     const isMatch = await argon2.verify(storedToken.tokenHash, dto.refreshToken);
     if (!isMatch) {
       await this.revokeTokenFamily(storedToken.familyId, 'invalid_hash');
+      this.logger.warn(`Refresh hash mismatch for userId=${payload.sub} familyId=${storedToken.familyId}`);
       throw new UnauthorizedException('Refresh token is invalid');
     }
 
@@ -131,6 +142,7 @@ export class AuthService {
         where: { id: storedToken.id },
         data: { revokedAt: new Date(), revokedReason: 'expired', lastUsedAt: new Date() },
       });
+      this.logger.warn(`Refresh token expired for userId=${payload.sub}`);
       throw new UnauthorizedException('Refresh token expired');
     }
 
@@ -149,6 +161,7 @@ export class AuthService {
       storedToken,
       this.extractSessionContext(request, dto.deviceId),
     );
+    this.logger.log(`Refresh successful userId=${user.id} sessionId=${storedToken.sessionId}`);
     return {
       user: sanitizeUser(user),
       ...tokens,
@@ -173,6 +186,7 @@ export class AuthService {
             userAgent: request.headers['user-agent'],
           },
         });
+        this.logger.log(`Logout successful userId=${user.id} sessionId=${token.sessionId}`);
         return { message: 'Logged out successfully' };
       }
     }
@@ -181,6 +195,7 @@ export class AuthService {
       where: { userId: user.id, revokedAt: null },
       data: { revokedAt: new Date(), revokedReason: 'logout_all', lastUsedAt: new Date() },
     });
+    this.logger.log(`Logout all sessions userId=${user.id}`);
 
     return { message: 'Logged out successfully' };
   }

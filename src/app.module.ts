@@ -52,6 +52,18 @@ import { WorkoutSessionsModule } from './workout-sessions/workout-sessions.modul
       useFactory: (configService: ConfigService) => ({
         pinoHttp: {
           level: configService.get<string>('LOG_LEVEL', 'info'),
+          transport:
+            configService.get<string>('NODE_ENV') === 'development'
+              ? {
+                  target: 'pino-pretty',
+                  options: {
+                    colorize: true,
+                    singleLine: true,
+                    translateTime: 'SYS:standard',
+                    ignore: 'pid,hostname',
+                  },
+                }
+              : undefined,
           genReqId: () => randomUUID(),
           redact: {
             paths: [
