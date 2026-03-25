@@ -58,16 +58,29 @@ import { WorkoutSessionsModule } from './workout-sessions/workout-sessions.modul
                   target: 'pino-pretty',
                   options: {
                     colorize: true,
-                    singleLine: true,
                     translateTime: 'SYS:standard',
                     ignore: 'pid,hostname',
                   },
                 }
               : undefined,
           genReqId: () => randomUUID(),
+          serializers: {
+            req: (req) => ({
+              id: req.id,
+              method: req.method,
+              url: req.url,
+              origin: req.headers?.origin,
+              userAgent: req.headers?.['user-agent'],
+              remoteAddress: req.remoteAddress,
+            }),
+            res: (res) => ({
+              statusCode: res.statusCode,
+            }),
+          },
           redact: {
             paths: [
               'req.headers.authorization',
+              'req.headers.cookie',
               'req.body.password',
               'req.body.passwordHash',
               'req.body.refreshToken',
