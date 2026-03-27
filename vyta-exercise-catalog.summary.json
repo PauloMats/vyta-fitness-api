@@ -1,0 +1,264 @@
+{
+  "totalExercises": 873,
+  "categories": {
+    "STRENGTH": 581,
+    "MOBILITY": 123,
+    "PLYOMETRICS": 61,
+    "POWERLIFTING": 38,
+    "OLYMPIC_WEIGHTLIFTING": 35,
+    "STRONGMAN": 21,
+    "CARDIO": 14
+  },
+  "bodyRegions": {
+    "UPPER_BODY": 407,
+    "LOWER_BODY": 164,
+    "FULL_BODY": 107,
+    "MOBILITY": 95,
+    "CORE": 86,
+    "CARDIO": 14
+  },
+  "difficulties": {
+    "BEGINNER": 523,
+    "INTERMEDIATE": 293,
+    "ADVANCED": 57
+  },
+  "equipment": {
+    "OTHER": 199,
+    "BARBELL": 170,
+    "DUMBBELL": 123,
+    "BODYWEIGHT": 111,
+    "CABLE": 81,
+    "MACHINE": 67,
+    "KETTLEBELL": 53,
+    "RESISTANCE_BAND": 20,
+    "MEDICINE_BALL": 17,
+    "STABILITY_BALL": 12,
+    "FOAM_ROLL": 11,
+    "EZ_BAR": 9
+  },
+  "movementPatterns": {
+    "CORE": 125,
+    "MOBILITY": 123,
+    "HORIZONTAL_PUSH": 119,
+    "OTHER": 101,
+    "ELBOW_FLEXION": 69,
+    "HORIZONTAL_PULL": 59,
+    "SQUAT": 54,
+    "OLYMPIC_LIFT": 42,
+    "HIP_HINGE": 35,
+    "ELBOW_EXTENSION": 32,
+    "JUMP": 21,
+    "VERTICAL_PUSH": 18,
+    "VERTICAL_PULL": 16,
+    "SHOULDER_ISOLATION": 15,
+    "CARDIO": 14,
+    "LUNGE": 12,
+    "ANKLE_EXTENSION": 12,
+    "CARRY": 5,
+    "HIP_ISOLATION": 1
+  },
+  "sample": [
+    {
+      "slug": "3-4-sit-up",
+      "name": "3/4 Abdominal",
+      "originalName": "3/4 Sit-Up",
+      "aliases": [
+        "3/4 Sit-Up",
+        "3/4 Sit Up"
+      ],
+      "description": "Exercício de força para core, com foco principal em Abs. Pode ser realizado com Bodyweight, conforme a variação.",
+      "category": "STRENGTH",
+      "movementPattern": "CORE",
+      "mechanic": "COMPOUND",
+      "forceType": "PULL",
+      "difficulty": "BEGINNER",
+      "bodyRegion": "CORE",
+      "isUnilateral": false,
+      "primaryMuscles": [
+        "ABS"
+      ],
+      "secondaryMuscles": [],
+      "equipment": [
+        "BODYWEIGHT"
+      ],
+      "instructions": [
+        "Lie down on the floor and secure your feet. Your legs should be bent at the knees.",
+        "Place your hands behind or to the side of your head. You will begin with your back on the ground. This will be your starting position.",
+        "Flex your hips and spine to raise your torso toward your knees.",
+        "At the top of the contraction your torso should be perpendicular to the ground. Reverse the motion, going only ¾ of the way down.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "instructionsPtBrAuto": [
+        "Organize a posição inicial e ative a musculatura abdominal.",
+        "Execute o gesto sem puxar o pescoço ou perder a estabilidade lombar.",
+        "Retorne lentamente e repita mantendo o controle respiratório."
+      ],
+      "tips": [
+        "Mantenha a postura estável e a coluna em posição neutra durante a execução.",
+        "Controle a fase de descida e evite usar impulso excessivo para mover a carga.",
+        "Evite tracionar o pescoço e concentre o esforço na região abdominal.",
+        "Use progressões ou regressões para adequar a dificuldade ao seu nível atual."
+      ],
+      "contraindications": [
+        "Evite executar em caso de dor aguda durante o movimento ou sem liberação profissional após lesão recente.",
+        "Requer cautela em casos de lombalgia aguda, hérnia sintomática ou dor irradiada sem avaliação."
+      ],
+      "tags": [
+        "3",
+        "4",
+        "abs",
+        "bodyweight",
+        "core",
+        "sit",
+        "strength",
+        "up"
+      ],
+      "media": {
+        "thumbnailUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/3_4_Sit-Up/0.jpg",
+        "imageUrls": [
+          "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/3_4_Sit-Up/0.jpg",
+          "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/3_4_Sit-Up/1.jpg"
+        ],
+        "videoUrl": null
+      },
+      "source": {
+        "provider": "free-exercise-db",
+        "externalId": "3_4_Sit-Up",
+        "license": "UNLICENSE"
+      },
+      "isActive": true
+    },
+    {
+      "slug": "90-90-hamstring",
+      "name": "90/90 Isquiotibiais",
+      "originalName": "90/90 Hamstring",
+      "aliases": [
+        "90/90 Hamstring"
+      ],
+      "description": "Exercício de mobilidade/alongamento para mobilidade, com foco principal em Hamstrings. Pode ser realizado com Bodyweight, conforme a variação.",
+      "category": "MOBILITY",
+      "movementPattern": "MOBILITY",
+      "mechanic": "OTHER",
+      "forceType": "PUSH",
+      "difficulty": "BEGINNER",
+      "bodyRegion": "MOBILITY",
+      "isUnilateral": false,
+      "primaryMuscles": [
+        "HAMSTRINGS"
+      ],
+      "secondaryMuscles": [
+        "CALVES"
+      ],
+      "equipment": [
+        "BODYWEIGHT"
+      ],
+      "instructions": [
+        "Lie on your back, with one leg extended straight out.",
+        "With the other leg, bend the hip and knee to 90 degrees. You may brace your leg with your hands if necessary. This will be your starting position.",
+        "Extend your leg straight into the air, pausing briefly at the top. Return the leg to the starting position.",
+        "Repeat for 10-20 repetitions, and then switch to the other leg."
+      ],
+      "instructionsPtBrAuto": [
+        "Assuma a posição inicial com conforto e estabilidade.",
+        "Leve o segmento corporal até o alongamento sem forçar dor aguda.",
+        "Mantenha a respiração fluindo e retorne devagar à posição inicial."
+      ],
+      "tips": [
+        "Respeite o limite de alongamento sem forçar dor aguda ou sensação de pinçamento.",
+        "Respire de forma lenta e mantenha o movimento suave, sem balanços bruscos.",
+        "Use progressões ou regressões para adequar a dificuldade ao seu nível atual."
+      ],
+      "contraindications": [
+        "Evite executar em caso de dor aguda durante o movimento ou sem liberação profissional após lesão recente.",
+        "Interrompa se houver formigamento, perda de força ou aumento importante da dor ao alongar."
+      ],
+      "tags": [
+        "90",
+        "bodyweight",
+        "hamstring",
+        "hamstrings",
+        "mobility"
+      ],
+      "media": {
+        "thumbnailUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/0.jpg",
+        "imageUrls": [
+          "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/0.jpg",
+          "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/1.jpg"
+        ],
+        "videoUrl": null
+      },
+      "source": {
+        "provider": "free-exercise-db",
+        "externalId": "90_90_Hamstring",
+        "license": "UNLICENSE"
+      },
+      "isActive": true
+    },
+    {
+      "slug": "ab-crunch-machine",
+      "name": "Ab Abdominal Crunch Máquina",
+      "originalName": "Ab Crunch Machine",
+      "aliases": [
+        "Ab Crunch Machine"
+      ],
+      "description": "Exercício de força para core, com foco principal em Abs. Pode ser realizado com Machine, conforme a variação.",
+      "category": "STRENGTH",
+      "movementPattern": "CORE",
+      "mechanic": "ISOLATION",
+      "forceType": "PULL",
+      "difficulty": "INTERMEDIATE",
+      "bodyRegion": "CORE",
+      "isUnilateral": false,
+      "primaryMuscles": [
+        "ABS"
+      ],
+      "secondaryMuscles": [],
+      "equipment": [
+        "MACHINE"
+      ],
+      "instructions": [
+        "Select a light resistance and sit down on the ab machine placing your feet under the pads provided and grabbing the top handles. Your arms should be bent at a 90 degree angle as you rest the triceps on the pads provided. This will be your starting position.",
+        "At the same time, begin to lift the legs up as you crunch your upper torso. Breathe out as you perform this movement. Tip: Be sure to use a slow and controlled motion. Concentrate on using your abs to move the weight while relaxing your legs and feet.",
+        "After a second pause, slowly return to the starting position as you breathe in.",
+        "Repeat the movement for the prescribed amount of repetitions."
+      ],
+      "instructionsPtBrAuto": [
+        "Organize a posição inicial e ative a musculatura abdominal.",
+        "Execute o gesto sem puxar o pescoço ou perder a estabilidade lombar.",
+        "Retorne lentamente e repita mantendo o controle respiratório."
+      ],
+      "tips": [
+        "Mantenha a postura estável e a coluna em posição neutra durante a execução.",
+        "Controle a fase de descida e evite usar impulso excessivo para mover a carga.",
+        "Priorize amplitude confortável e contração do músculo-alvo, reduzindo compensações.",
+        "Evite tracionar o pescoço e concentre o esforço na região abdominal."
+      ],
+      "contraindications": [
+        "Evite executar em caso de dor aguda durante o movimento ou sem liberação profissional após lesão recente.",
+        "Requer cautela em casos de lombalgia aguda, hérnia sintomática ou dor irradiada sem avaliação."
+      ],
+      "tags": [
+        "ab",
+        "abs",
+        "core",
+        "crunch",
+        "machine",
+        "strength"
+      ],
+      "media": {
+        "thumbnailUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Crunch_Machine/0.jpg",
+        "imageUrls": [
+          "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Crunch_Machine/0.jpg",
+          "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Crunch_Machine/1.jpg"
+        ],
+        "videoUrl": null
+      },
+      "source": {
+        "provider": "free-exercise-db",
+        "externalId": "Ab_Crunch_Machine",
+        "license": "UNLICENSE"
+      },
+      "isActive": true
+    }
+  ]
+}
