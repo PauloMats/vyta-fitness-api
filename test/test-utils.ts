@@ -1,16 +1,21 @@
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
 export const prisma = new PrismaClient();
+let ipOctet = 10;
 
 export async function createTestApp() {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  })
+    .overrideGuard(ThrottlerGuard)
+    .useValue({ canActivate: () => true })
+    .compile();
 
   const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter(), {
     bufferLogs: false,
@@ -77,15 +82,33 @@ export async function registerAndLogin(
     role?: 'TRAINER' | 'STUDENT';
   },
 ) {
-  await request(app.getHttpServer()).post('/api/v1/auth/register').send(payload).expect(201);
-  const response = await request(app.getHttpServer()).post('/api/v1/auth/login').send({
-    email: payload.email,
-    password: payload.password,
-  });
+  const testIp = nextTestIp();
+
+  await request(app.getHttpServer())
+    .post('/api/v1/auth/register')
+    .set('x-forwarded-for', testIp)
+    .send(payload)
+    .expect(201);
+  const response = await request(app.getHttpServer())
+    .post('/api/v1/auth/login')
+    .set('x-forwarded-for', testIp)
+    .send({
+      email: payload.email,
+      password: payload.password,
+    });
 
   return response.body.data as {
     user: { id: string };
     accessToken: string;
     refreshToken: string;
   };
+}
+
+export function authHeader(token: string) {
+  return { Authorization: `Bearer ${token}` };
+}
+
+function nextTestIp() {
+  ipOctet = ipOctet >= 250 ? 10 : ipOctet + 1;
+  return `10.0.0.${ipOctet}`;
 }

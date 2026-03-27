@@ -51,7 +51,6 @@ async function bootstrap() {
     .setTitle(configService.getOrThrow<string>('APP_NAME'))
     .setDescription('Production-ready REST API for the VYTA fitness platform.')
     .setVersion('1.0.0')
-    .addServer('/api/v1')
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
@@ -62,7 +61,7 @@ async function bootstrap() {
 
   bootstrapLogger.log(`API running at http://0.0.0.0:${port}/api/v1`);
   bootstrapLogger.log(`Swagger available at http://localhost:${port}/docs`);
-  bootstrapLogger.log(`Healthcheck available at http://localhost:${port}/api/health`);
+  bootstrapLogger.log(`Healthcheck available at http://localhost:${port}/api/v1/health`);
   bootstrapLogger.log(`Allowed CORS origins: ${corsOrigins.join(', ')}`);
 }
 bootstrap();

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { cleanDatabase, createTestApp, prisma } from './test-utils';
+import { authHeader, cleanDatabase, createTestApp, prisma } from './test-utils';
 
 describe('Auth (e2e)', () => {
   let app: NestFastifyApplication;
@@ -58,5 +58,64 @@ describe('Auth (e2e)', () => {
     });
 
     expect(reusedRefreshResponse.status).toBe(401);
+  });
+
+  it('normalizes identity fields, stores device context and revokes refresh tokens on logout', async () => {
+    const registerResponse = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
+      email: 'Mixed.Case@Vyta.App',
+      username: 'Trainer.Mixed',
+      fullName: 'Trainer Mixed',
+      password: 'Vyta@1234',
+      role: 'TRAINER',
+    });
+
+    expect(registerResponse.status).toBe(201);
+    expect(registerResponse.body.data.user.email).toBe('mixed.case@vyta.app');
+    expect(registerResponse.body.data.user.username).toBe('trainer.mixed');
+
+    const duplicateRegisterResponse = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
+      email: 'mixed.case@vyta.app',
+      username: 'trainer.mixed',
+      fullName: 'Trainer Duplicate',
+      password: 'Vyta@1234',
+      role: 'TRAINER',
+    });
+
+    expect(duplicateRegisterResponse.status).toBe(409);
+    expect(duplicateRegisterResponse.body.error.message).toBe('Email or username already in use');
+
+    const loginResponse = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .set('User-Agent', 'vyta-e2e-browser')
+      .send({
+        email: 'MIXED.CASE@VYTA.APP',
+        password: 'Vyta@1234',
+        deviceId: 'browser-chrome',
+      });
+
+    expect(loginResponse.status).toBe(201);
+
+    const storedRefreshToken = await prisma.refreshToken.findFirst({
+      where: { userId: registerResponse.body.data.user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    expect(storedRefreshToken?.deviceId).toBe('browser-chrome');
+    expect(storedRefreshToken?.userAgent).toBe('vyta-e2e-browser');
+
+    const logoutResponse = await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .set(authHeader(loginResponse.body.data.accessToken))
+      .send({
+        refreshToken: loginResponse.body.data.refreshToken,
+      });
+
+    expect(logoutResponse.status).toBe(201);
+
+    const refreshAfterLogoutResponse = await request(app.getHttpServer()).post('/api/v1/auth/refresh').send({
+      refreshToken: loginResponse.body.data.refreshToken,
+    });
+
+    expect(refreshAfterLogoutResponse.status).toBe(401);
   });
 });
