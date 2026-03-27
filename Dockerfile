@@ -25,8 +25,9 @@ WORKDIR /app
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
+COPY --from=build /app/prisma/schema.prisma ./prisma/schema.prisma
+COPY --from=build /app/prisma/migrations ./prisma/migrations
 COPY docker/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
@@ -34,6 +35,6 @@ RUN chmod +x /entrypoint.sh
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD sh -c 'curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" >/dev/null || exit 1'
+  CMD sh -c 'curl -fsS "http://127.0.0.1:${PORT:-3000}/api/v1/health" >/dev/null || exit 1'
 
 ENTRYPOINT ["/entrypoint.sh"]

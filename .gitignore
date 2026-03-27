@@ -4,5 +4,11 @@ coverage
 .pnpm-store
 .env
 .env.test
+.env.local
+.env.*.local
 *.log
+pnpm-debug.log*
+.vscode
+.idea
+*.tsbuildinfo
 .DS_Store

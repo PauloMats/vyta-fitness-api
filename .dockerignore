@@ -3,5 +3,14 @@
 node_modules
 dist
 coverage
+test
+.vscode
+.idea
+.pnpm-store
 .env
 .env.test
+*.log
+README.md
+railway.md
+pnpm.md
+jest.coverage.config.ts

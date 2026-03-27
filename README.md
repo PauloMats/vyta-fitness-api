@@ -82,6 +82,7 @@ docker compose up --build
 - `docker-compose.yml` sobe `api` + `postgres`.
 - O `entrypoint` executa `prisma migrate deploy` antes do boot da aplicação.
 - A aplicação respeita `PORT` e faz bind em `0.0.0.0`.
+- A imagem final não leva testes nem relatórios de cobertura.
 
 ## Autenticação
 

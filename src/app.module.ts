@@ -29,6 +29,27 @@ import { WorkoutDaysModule } from './workout-days/workout-days.module';
 import { WorkoutPlansModule } from './workout-plans/workout-plans.module';
 import { WorkoutSessionsModule } from './workout-sessions/workout-sessions.module';
 
+function resolvePrettyTransport(nodeEnv?: string) {
+  if (nodeEnv !== 'development') {
+    return undefined;
+  }
+
+  try {
+    require.resolve('pino-pretty');
+  } catch {
+    return undefined;
+  }
+
+  return {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'SYS:standard',
+      ignore: 'pid,hostname',
+    },
+  };
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -52,17 +73,7 @@ import { WorkoutSessionsModule } from './workout-sessions/workout-sessions.modul
       useFactory: (configService: ConfigService) => ({
         pinoHttp: {
           level: configService.get<string>('LOG_LEVEL', 'info'),
-          transport:
-            configService.get<string>('NODE_ENV') === 'development'
-              ? {
-                  target: 'pino-pretty',
-                  options: {
-                    colorize: true,
-                    translateTime: 'SYS:standard',
-                    ignore: 'pid,hostname',
-                  },
-                }
-              : undefined,
+          transport: resolvePrettyTransport(configService.get<string>('NODE_ENV')),
           genReqId: () => randomUUID(),
           serializers: {
             req: (req) => ({
