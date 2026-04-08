@@ -12,6 +12,7 @@ import {
   WorkoutSessionStatus,
 } from '@prisma/client';
 import * as argon2 from 'argon2';
+import { importExerciseCatalog } from '../src/exercises/exercise-catalog.util';
 
 const prisma = new PrismaClient();
 
@@ -188,53 +189,71 @@ async function main() {
     ],
   });
 
-  const [squat, bench, row, rdl, intervals] = await Promise.all([
-    prisma.exerciseLibrary.create({
-      data: {
-        name: 'Agachamento Livre',
-        slug: 'agachamento-livre',
-        muscleGroup: 'Quadriceps',
-        equipment: 'Barra',
-        instructions: 'Pés na largura dos ombros, tronco firme e descida controlada.',
-      },
-    }),
-    prisma.exerciseLibrary.create({
-      data: {
-        name: 'Supino Reto',
-        slug: 'supino-reto',
-        muscleGroup: 'Peito',
-        equipment: 'Barra',
-        instructions: 'Escápulas encaixadas, pés estáveis e movimento controlado.',
-      },
-    }),
-    prisma.exerciseLibrary.create({
-      data: {
-        name: 'Remada Curvada',
-        slug: 'remada-curvada',
-        muscleGroup: 'Costas',
-        equipment: 'Barra',
-        instructions: 'Puxe a barra até o abdômen mantendo a coluna neutra.',
-      },
-    }),
-    prisma.exerciseLibrary.create({
-      data: {
-        name: 'Levantamento Terra Romeno',
-        slug: 'terra-romeno',
-        muscleGroup: 'Posterior',
-        equipment: 'Barra',
-        instructions: 'Leve o quadril para trás e mantenha a barra próxima às pernas.',
-      },
-    }),
-    prisma.exerciseLibrary.create({
-      data: {
-        name: 'Corrida Intervalada',
-        slug: 'corrida-intervalada',
-        muscleGroup: 'Cardio',
-        equipment: 'Esteira',
-        instructions: 'Alterne blocos fortes e moderados conforme o objetivo da sessão.',
-      },
-    }),
-  ]);
+  const importedCatalog = await importExerciseCatalog(prisma, {
+    strict: false,
+  });
+
+  if (importedCatalog) {
+    console.log(`Imported ${importedCatalog.count} exercises from ${importedCatalog.filePath}`);
+  }
+
+  const [squat, bench, row, rdl, intervals] = importedCatalog
+    ? await Promise.all([
+        prisma.exerciseLibrary.findUniqueOrThrow({ where: { slug: 'barbell-squat' } }),
+        prisma.exerciseLibrary.findUniqueOrThrow({
+          where: { slug: 'barbell-bench-press-medium-grip' },
+        }),
+        prisma.exerciseLibrary.findUniqueOrThrow({ where: { slug: 'bent-over-barbell-row' } }),
+        prisma.exerciseLibrary.findUniqueOrThrow({ where: { slug: 'romanian-deadlift' } }),
+        prisma.exerciseLibrary.findUniqueOrThrow({ where: { slug: 'running-treadmill' } }),
+      ])
+    : await Promise.all([
+        prisma.exerciseLibrary.create({
+          data: {
+            name: 'Agachamento Livre',
+            slug: 'agachamento-livre',
+            muscleGroup: 'Quadriceps',
+            equipment: 'Barra',
+            instructions: 'Pes na largura dos ombros, tronco firme e descida controlada.',
+          },
+        }),
+        prisma.exerciseLibrary.create({
+          data: {
+            name: 'Supino Reto',
+            slug: 'supino-reto',
+            muscleGroup: 'Peito',
+            equipment: 'Barra',
+            instructions: 'Escapulas encaixadas, pes estaveis e movimento controlado.',
+          },
+        }),
+        prisma.exerciseLibrary.create({
+          data: {
+            name: 'Remada Curvada',
+            slug: 'remada-curvada',
+            muscleGroup: 'Costas',
+            equipment: 'Barra',
+            instructions: 'Puxe a barra ate o abdomen mantendo a coluna neutra.',
+          },
+        }),
+        prisma.exerciseLibrary.create({
+          data: {
+            name: 'Levantamento Terra Romeno',
+            slug: 'terra-romeno',
+            muscleGroup: 'Posterior',
+            equipment: 'Barra',
+            instructions: 'Leve o quadril para tras e mantenha a barra proxima as pernas.',
+          },
+        }),
+        prisma.exerciseLibrary.create({
+          data: {
+            name: 'Corrida Intervalada',
+            slug: 'corrida-intervalada',
+            muscleGroup: 'Cardio',
+            equipment: 'Esteira',
+            instructions: 'Alterne blocos fortes e moderados conforme o objetivo da sessao.',
+          },
+        }),
+      ]);
 
   const planOne = await prisma.workoutPlan.create({
     data: {

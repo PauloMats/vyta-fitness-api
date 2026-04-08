@@ -74,6 +74,7 @@ pnpm test:e2e
 pnpm prisma:generate
 pnpm prisma:migrate:deploy
 pnpm prisma:seed
+pnpm catalog:import:exercises
 docker compose up --build
 ```
 
@@ -83,6 +84,16 @@ docker compose up --build
 - O `entrypoint` executa `prisma migrate deploy` antes do boot da aplicação.
 - A aplicação respeita `PORT` e faz bind em `0.0.0.0`.
 - A imagem final não leva testes nem relatórios de cobertura.
+
+## Catalogo de exercicios
+
+- O catalogo principal fica em `vyta-exercise-catalog.v1.json` na raiz do projeto.
+- O resumo de conferência fica em `vyta-exercise-catalog.summary.json`.
+- Para importar ou atualizar o catalogo manualmente:
+  ```bash
+  pnpm catalog:import:exercises
+  ```
+- O `seed` usa o catalogo automaticamente quando o arquivo principal estiver presente na raiz.
 
 ## Autenticação
 

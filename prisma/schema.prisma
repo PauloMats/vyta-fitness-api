@@ -139,6 +139,66 @@ enum AssessmentPhotoPosition {
   BACK
 }
 
+enum ExerciseCategory {
+  STRENGTH
+  MOBILITY
+  PLYOMETRICS
+  POWERLIFTING
+  OLYMPIC_WEIGHTLIFTING
+  STRONGMAN
+  CARDIO
+}
+
+enum ExerciseBodyRegion {
+  UPPER_BODY
+  LOWER_BODY
+  FULL_BODY
+  MOBILITY
+  CORE
+  CARDIO
+}
+
+enum ExerciseDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ExerciseMovementPattern {
+  HORIZONTAL_PUSH
+  HORIZONTAL_PULL
+  VERTICAL_PUSH
+  VERTICAL_PULL
+  SQUAT
+  HIP_HINGE
+  LUNGE
+  CORE
+  ELBOW_FLEXION
+  ELBOW_EXTENSION
+  SHOULDER_ISOLATION
+  HIP_ISOLATION
+  ANKLE_EXTENSION
+  CARRY
+  JUMP
+  CARDIO
+  MOBILITY
+  OLYMPIC_LIFT
+  OTHER
+}
+
+enum ExerciseMechanic {
+  COMPOUND
+  ISOLATION
+  OTHER
+}
+
+enum ExerciseForceType {
+  PUSH
+  PULL
+  STATIC
+  OTHER
+}
+
 model User {
   id                   String            @id @default(cuid())
   email                String            @db.Citext
@@ -284,19 +344,46 @@ model WorkoutDay {
 }
 
 model ExerciseLibrary {
-  id              String            @id @default(cuid())
-  name            String
-  slug            String            @unique
-  muscleGroup     String
-  equipment       String?
-  instructions    String
-  defaultMediaUrl String?
-  defaultThumbUrl String?
-  version         Int               @default(1)
-  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
-  updatedAt       DateTime          @updatedAt @db.Timestamptz(3)
-  workoutItems    WorkoutExercise[]
+  id                   String                  @id @default(cuid())
+  name                 String
+  originalName         String?
+  slug                 String                  @unique
+  description          String?
+  category             ExerciseCategory        @default(STRENGTH)
+  movementPattern      ExerciseMovementPattern @default(OTHER)
+  mechanic             ExerciseMechanic        @default(OTHER)
+  forceType            ExerciseForceType       @default(OTHER)
+  difficulty           ExerciseDifficulty      @default(BEGINNER)
+  bodyRegion           ExerciseBodyRegion      @default(FULL_BODY)
+  isUnilateral         Boolean                 @default(false)
+  isActive             Boolean                 @default(true)
+  muscleGroup          String
+  equipment            String?
+  instructions         String
+  defaultMediaUrl      String?
+  defaultThumbUrl      String?
+  aliases              String[]                @default([])
+  primaryMuscles       String[]                @default([])
+  secondaryMuscles     String[]                @default([])
+  equipmentList        String[]                @default([])
+  instructionSteps     String[]                @default([])
+  instructionsPtBrAuto String[]                @default([])
+  tips                 String[]                @default([])
+  contraindications    String[]                @default([])
+  tags                 String[]                @default([])
+  imageUrls            String[]                @default([])
+  videoUrl             String?
+  sourceProvider       String?
+  sourceExternalId     String?
+  sourceLicense        String?
+  version              Int                     @default(1)
+  createdAt            DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime                @updatedAt @db.Timestamptz(3)
+  workoutItems         WorkoutExercise[]
 
+  @@index([category, bodyRegion])
+  @@index([difficulty, isActive])
+  @@index([movementPattern])
   @@index([muscleGroup])
   @@index([name])
 }

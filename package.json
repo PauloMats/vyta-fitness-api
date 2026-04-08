@@ -24,7 +24,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "catalog:import:exercises": "tsx prisma/import-exercise-catalog.ts"
   },
   "dependencies": {
     "@fastify/compress": "^8.3.1",
