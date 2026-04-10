@@ -22,6 +22,7 @@ import { MediaModule } from './media/media.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { StudentsModule } from './students/students.module';
+import { StudentImportsModule } from './student-imports/student-imports.module';
 import { TrainerStudentsModule } from './trainer-students/trainer-students.module';
 import { TrainersModule } from './trainers/trainers.module';
 import { UsersModule } from './users/users.module';
@@ -107,6 +108,7 @@ function resolvePrettyTransport(nodeEnv?: string) {
     UsersModule,
     TrainersModule,
     StudentsModule,
+    StudentImportsModule,
     TrainerStudentsModule,
     WorkoutPlansModule,
     WorkoutDaysModule,

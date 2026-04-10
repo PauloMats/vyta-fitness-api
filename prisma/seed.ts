@@ -18,6 +18,9 @@ const prisma = new PrismaClient();
 
 async function cleanDatabase() {
   await prisma.$transaction([
+    prisma.studentImportIssue.deleteMany(),
+    prisma.studentImportExerciseMatch.deleteMany(),
+    prisma.studentImportJob.deleteMany(),
     prisma.comment.deleteMany(),
     prisma.postLike.deleteMany(),
     prisma.post.deleteMany(),

@@ -1,4 +1,5 @@
 import { ValidationPipe, VersioningType } from '@nestjs/common';
+import multipart from '@fastify/multipart';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { Test } from '@nestjs/testing';
@@ -35,6 +36,12 @@ export async function createTestApp() {
     }),
   );
 
+  await app.register(multipart, {
+    limits: {
+      files: 1,
+      fileSize: 10 * 1024 * 1024,
+    },
+  });
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
   return app;
@@ -42,6 +49,9 @@ export async function createTestApp() {
 
 export async function cleanDatabase() {
   await prisma.$transaction([
+    prisma.studentImportIssue.deleteMany(),
+    prisma.studentImportExerciseMatch.deleteMany(),
+    prisma.studentImportJob.deleteMany(),
     prisma.comment.deleteMany(),
     prisma.postLike.deleteMany(),
     prisma.post.deleteMany(),

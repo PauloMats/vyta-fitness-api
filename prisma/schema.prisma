@@ -199,6 +199,31 @@ enum ExerciseForceType {
   OTHER
 }
 
+enum StudentImportStatus {
+  UPLOADED
+  PROCESSING
+  REVIEW_READY
+  CONFIRMED
+  FAILED
+}
+
+enum StudentImportSourcePlatform {
+  UNKNOWN
+  GENERIC_PDF
+}
+
+enum StudentImportIssueSeverity {
+  INFO
+  WARNING
+  ERROR
+}
+
+enum StudentImportMatchStatus {
+  AUTO_MATCHED
+  MANUAL_REVIEW
+  UNMATCHED
+}
+
 model User {
   id                   String            @id @default(cuid())
   email                String            @db.Citext
@@ -235,6 +260,7 @@ model User {
   mediaAssets          MediaAsset[]
   trainerAssessments   PhysicalAssessment[] @relation("TrainerAssessments")
   studentAssessments   PhysicalAssessment[] @relation("StudentAssessments")
+  studentImportJobs    StudentImportJob[]   @relation("StudentImportJobs")
 
   @@index([role, status, deletedAt])
 }
@@ -380,6 +406,7 @@ model ExerciseLibrary {
   createdAt            DateTime                @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime                @updatedAt @db.Timestamptz(3)
   workoutItems         WorkoutExercise[]
+  studentImportMatches StudentImportExerciseMatch[]
 
   @@index([category, bodyRegion])
   @@index([difficulty, isActive])
@@ -560,6 +587,62 @@ model MediaAsset {
 
   @@index([userId, kind])
   @@index([objectKey])
+}
+
+model StudentImportJob {
+  id                    String                      @id @default(cuid())
+  createdByUserId       String
+  sourcePlatform        StudentImportSourcePlatform @default(UNKNOWN)
+  status                StudentImportStatus         @default(UPLOADED)
+  fileName              String
+  rawExtractedText      String?
+  parsedData            Json?
+  mappingSummary        Json?
+  errorMessage          String?
+  confirmedStudentId    String?
+  confirmedPlanId       String?
+  confirmedAssessmentId String?
+  createdAt             DateTime                    @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime                    @updatedAt @db.Timestamptz(3)
+  createdByUser         User                        @relation("StudentImportJobs", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  issues                StudentImportIssue[]
+  exerciseMatches       StudentImportExerciseMatch[]
+
+  @@index([createdByUserId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([sourcePlatform, createdAt(sort: Desc)])
+}
+
+model StudentImportIssue {
+  id             String                     @id @default(cuid())
+  importJobId    String
+  fieldPath      String
+  severity       StudentImportIssueSeverity
+  message        String
+  suggestedValue Json?
+  createdAt      DateTime                   @default(now()) @db.Timestamptz(3)
+  importJob      StudentImportJob           @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+
+  @@index([importJobId, severity])
+}
+
+model StudentImportExerciseMatch {
+  id                       String                   @id @default(cuid())
+  importJobId              String
+  rawExerciseName          String
+  normalizedExerciseName   String
+  matchedExerciseLibraryId String?
+  matchedExerciseName      String?
+  confidence               Decimal?                 @db.Decimal(4, 3)
+  status                   StudentImportMatchStatus
+  payload                  Json?
+  createdAt                DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime                 @updatedAt @db.Timestamptz(3)
+  importJob                StudentImportJob         @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  matchedExerciseLibrary   ExerciseLibrary?         @relation(fields: [matchedExerciseLibraryId], references: [id], onDelete: SetNull)
+
+  @@index([importJobId, status])
+  @@index([matchedExerciseLibraryId])
 }
 
 model PhysicalAssessment {
