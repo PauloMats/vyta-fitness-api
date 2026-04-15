@@ -30,10 +30,12 @@ src/
   friendships/
   health/
   likes/
+  messages/
   media/
   notifications/
   prisma/
   students/
+  support/
   trainer-students/
   trainers/
   users/
@@ -116,6 +118,68 @@ Todos os demais endpoints usam JWT Bearer por padrão.
 
 O domínio `PhysicalAssessment` separa perfil atual do aluno e histórico técnico. O `StudentProfile` agora guarda apenas o resumo corrente.
 
+## Notificações
+
+- `GET /api/v1/notifications`
+- `PATCH /api/v1/notifications/:id/read`
+- `PATCH /api/v1/notifications/read-all`
+- `POST /api/v1/notifications`
+
+As notificações são persistidas no banco, ordenadas por `createdAt desc` e a listagem retorna `unreadCount` no `meta`.
+
+## Realtime (SSE)
+
+- `GET /api/v1/realtime/stream`
+
+O backend expõe um stream SSE para invalidação leve de cache no frontend. Ele não substitui as rotas REST; ele avisa quando o frontend deve recarregar dados.
+
+Eventos emitidos atualmente:
+
+- `notifications.invalidate`
+- `messages.invalidate`
+- `support.invalidate`
+- `connected`
+- `heartbeat`
+
+Autenticação:
+
+- preferencialmente via `Authorization: Bearer <accessToken>`
+- fallback para `?accessToken=...` quando o cliente usar `EventSource` nativo
+
+Filtro opcional por canal:
+
+- `?channels=notifications,messages`
+- canais suportados: `notifications`, `messages`, `support`
+
+## Mensagens diretas
+
+- `POST /api/v1/messages`
+- `GET /api/v1/messages/inbox`
+- `GET /api/v1/messages/sent`
+- `GET /api/v1/messages/:id`
+- `PATCH /api/v1/messages/:id/read`
+
+Regras de autorização:
+
+- `STUDENT` só pode enviar mensagem para trainer com vínculo `ACTIVE`
+- `TRAINER` só pode enviar mensagem para student com vínculo `ACTIVE`
+- criar mensagem gera notificação persistida para o destinatário
+
+## Suporte
+
+- `POST /api/v1/support/tickets`
+- `GET /api/v1/support/tickets/me`
+- `GET /api/v1/support/tickets/:id`
+- `PATCH /api/v1/support/tickets/:id/status`
+
+O ticket sempre é salvo no banco. O envio de e-mail é tentado em seguida; se falhar, o ticket não é perdido.
+
+Variáveis adicionais para suporte por e-mail:
+
+- `RESEND_API_KEY`
+- `SUPPORT_TO_EMAIL`
+- `SUPPORT_FROM_EMAIL`
+
 ## Qualidade
 
 - ValidationPipe global com `whitelist`, `forbidNonWhitelisted` e `transform`
@@ -123,8 +187,8 @@ O domínio `PhysicalAssessment` separa perfil atual do aluno e histórico técni
 - Interceptor global de resposta
 - Paginação padronizada com `page` e `limit`
 - Migrations customizadas com `citext`, constraints e índices parciais do PostgreSQL
-- Seeds realistas para admin, trainers, students, planos, sessões, avaliações e feed
-- Testes e2e para auth, assessments, workout plans e workout sessions
+- Seeds realistas para admin, trainers, students, planos, sessões, avaliações, feed, notificações, mensagens e suporte
+- Testes e2e para auth, assessments, workout plans, workout sessions, notificações, mensagens e suporte
 
 ## Railway
 

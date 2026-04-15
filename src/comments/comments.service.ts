@@ -33,11 +33,12 @@ export class CommentsService {
     if (post.userId !== user.id) {
       await this.prisma.notification.create({
         data: {
-          userId: post.userId,
+          recipientId: post.userId,
+          senderId: user.id,
           type: NotificationType.POST_COMMENT,
           title: 'Novo comentario no post',
-          message: 'Seu post recebeu um novo comentario.',
-          data: { postId, commentId: comment.id },
+          body: 'Seu post recebeu um novo comentario.',
+          meta: { postId, commentId: comment.id },
         },
       });
     }

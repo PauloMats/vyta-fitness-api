@@ -20,4 +20,7 @@ export const envValidationSchema = Joi.object({
   S3_BUCKET: Joi.string().allow('').default(''),
   S3_ACCESS_KEY_ID: Joi.string().allow('').default(''),
   S3_SECRET_ACCESS_KEY: Joi.string().allow('').default(''),
+  RESEND_API_KEY: Joi.string().allow('').default(''),
+  SUPPORT_TO_EMAIL: Joi.string().email({ tlds: false }).allow('').default(''),
+  SUPPORT_FROM_EMAIL: Joi.string().email({ tlds: false }).allow('').default(''),
 });

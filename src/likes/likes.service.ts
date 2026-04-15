@@ -33,11 +33,12 @@ export class LikesService {
     if (post.userId !== user.id) {
       await this.prisma.notification.create({
         data: {
-          userId: post.userId,
+          recipientId: post.userId,
+          senderId: user.id,
           type: NotificationType.POST_LIKE,
           title: 'Novo like no post',
-          message: 'Seu post recebeu um novo like.',
-          data: { postId },
+          body: 'Seu post recebeu um novo like.',
+          meta: { postId },
         },
       });
     }

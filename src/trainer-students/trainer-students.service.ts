@@ -68,11 +68,12 @@ export class TrainerStudentsService {
 
     await this.prisma.notification.create({
       data: {
-        userId: trainerId,
+        recipientId: trainerId,
+        senderId: studentId,
         type: NotificationType.TRAINER_MESSAGE,
         title: 'Nova solicitacao de acompanhamento',
-        message: `${student.fullName} solicitou acompanhamento no VYTA.`,
-        data: { trainerStudentId: relationship.id },
+        body: `${student.fullName} solicitou acompanhamento no VYTA.`,
+        meta: { trainerStudentId: relationship.id },
       },
     });
 
@@ -124,11 +125,12 @@ export class TrainerStudentsService {
 
     await this.prisma.notification.create({
       data: {
-        userId: relation.studentId,
+        recipientId: relation.studentId,
+        senderId: relation.trainerId,
         type: NotificationType.SYSTEM,
         title: 'Status de acompanhamento atualizado',
-        message: `${relation.trainer.fullName} atualizou sua solicitacao para ${dto.status}.`,
-        data: { trainerStudentId: relation.id, status: dto.status },
+        body: `${relation.trainer.fullName} atualizou sua solicitacao para ${dto.status}.`,
+        meta: { trainerStudentId: relation.id, status: dto.status },
       },
     });
 

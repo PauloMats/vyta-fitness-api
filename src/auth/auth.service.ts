@@ -227,6 +227,36 @@ export class AuthService {
     return sanitizeUser(user);
   }
 
+  async authenticateAccessToken(token: string): Promise<JwtUser> {
+    try {
+      const payload = await this.jwtService.verifyAsync<{
+        sub: string;
+        email: string;
+        role: UserRole;
+        type: 'access' | 'refresh';
+      }>(token, {
+        secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+      });
+
+      if (payload.type !== 'access') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, email: true, role: true, status: true, deletedAt: true },
+      });
+
+      if (!user || user.status !== UserStatus.ACTIVE || user.deletedAt) {
+        throw new UnauthorizedException('User is not available');
+      }
+
+      return user;
+    } catch {
+      throw new UnauthorizedException('Access token is invalid');
+    }
+  }
+
   private async generateTokens(
     userId: string,
     email: string,

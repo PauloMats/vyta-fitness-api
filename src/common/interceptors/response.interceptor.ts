@@ -3,7 +3,15 @@ import { map, Observable } from 'rxjs';
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
-  intercept(_context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = context.switchToHttp().getRequest();
+    const acceptHeader =
+      typeof request?.headers?.accept === 'string' ? request.headers.accept : '';
+
+    if (acceptHeader.includes('text/event-stream')) {
+      return next.handle();
+    }
+
     return next.handle().pipe(
       map((data) => {
         if (data && typeof data === 'object' && 'success' in (data as Record<string, unknown>)) {

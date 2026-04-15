@@ -51,11 +51,12 @@ export class FriendshipsService {
 
     await this.prisma.notification.create({
       data: {
-        userId: dto.addresseeId,
+        recipientId: dto.addresseeId,
+        senderId: user.id,
         type: NotificationType.FRIEND_REQUEST,
         title: 'Nova solicitacao de amizade',
-        message: `${friendship.requester.fullName} enviou uma solicitacao de amizade.`,
-        data: { friendshipId: friendship.id },
+        body: `${friendship.requester.fullName} enviou uma solicitacao de amizade.`,
+        meta: { friendshipId: friendship.id },
       },
     });
 

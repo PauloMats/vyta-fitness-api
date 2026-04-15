@@ -52,12 +52,40 @@ enum MediaKind {
 }
 
 enum NotificationType {
+  MESSAGE
+  SUPPORT
+  REMINDER
+  ASSESSMENT
+  WORKOUT
   TRAINING_REMINDER
   TRAINER_MESSAGE
   POST_LIKE
   POST_COMMENT
   FRIEND_REQUEST
   SYSTEM
+}
+
+enum MessageCategory {
+  GENERAL
+  SUPPORT
+  REMINDER
+  TRAINING
+  ASSESSMENT
+}
+
+enum SupportCategory {
+  STUDENT_REGISTRATION
+  PAYMENTS
+  ABOUT_APP
+  QUESTIONS
+  OTHER
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
 }
 
 enum FriendshipStatus {
@@ -255,7 +283,11 @@ model User {
   postLikes            PostLike[]
   requestedFriendships Friendship[]      @relation("FriendshipRequester")
   receivedFriendships  Friendship[]      @relation("FriendshipAddressee")
-  notifications        Notification[]
+  receivedNotifications Notification[]   @relation("NotificationRecipient")
+  sentNotifications    Notification[]    @relation("NotificationSender")
+  sentDirectMessages   DirectMessage[]   @relation("DirectMessageSender")
+  receivedDirectMessages DirectMessage[] @relation("DirectMessageRecipient")
+  supportTickets       SupportTicket[]
   deviceTokens         DeviceToken[]
   mediaAssets          MediaAsset[]
   trainerAssessments   PhysicalAssessment[] @relation("TrainerAssessments")
@@ -545,18 +577,68 @@ model Friendship {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  type      NotificationType
-  title     String
-  message   String
-  data      Json?
-  readAt    DateTime?        @db.Timestamptz(3)
-  createdAt DateTime         @default(now()) @db.Timestamptz(3)
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String           @id @default(cuid())
+  recipientId     String
+  senderId        String?
+  directMessageId String?          @unique
+  supportTicketId String?
+  type            NotificationType
+  title           String
+  body            String
+  imageUrl        String?
+  actionHref      String?
+  actionLabel     String?
+  meta            Json?
+  readAt          DateTime?        @db.Timestamptz(3)
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+  recipient       User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender          User?            @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
+  directMessage   DirectMessage?   @relation(fields: [directMessageId], references: [id], onDelete: SetNull)
+  supportTicket   SupportTicket?   @relation(fields: [supportTicketId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, createdAt])
+  @@index([recipientId, readAt])
+  @@index([senderId, createdAt])
+}
+
+model DirectMessage {
+  id            String            @id @default(cuid())
+  senderId      String
+  recipientId   String
+  trainerId     String?
+  studentId     String?
+  subject       String?
+  category      MessageCategory?
+  body          String
+  createdAt     DateTime          @default(now()) @db.Timestamptz(3)
+  readAt        DateTime?         @db.Timestamptz(3)
+  meta          Json?
+  sender        User              @relation("DirectMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient     User              @relation("DirectMessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@index([senderId, createdAt])
+  @@index([recipientId, createdAt])
+  @@index([trainerId, studentId, createdAt])
+}
+
+model SupportTicket {
+  id          String              @id @default(cuid())
+  userId       String
+  category     SupportCategory
+  subject      String?
+  message      String
+  status       SupportTicketStatus @default(OPEN)
+  emailSentAt  DateTime?          @db.Timestamptz(3)
+  createdAt    DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime           @updatedAt @db.Timestamptz(3)
+  meta         Json?
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications Notification[]
 
   @@index([userId, createdAt])
-  @@index([userId, readAt])
+  @@index([status, createdAt])
 }
 
 model DeviceToken {

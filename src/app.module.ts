@@ -20,9 +20,12 @@ import { HealthModule } from './health/health.module';
 import { LikesModule } from './likes/likes.module';
 import { MediaModule } from './media/media.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { MessagesModule } from './messages/messages.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { StudentsModule } from './students/students.module';
 import { StudentImportsModule } from './student-imports/student-imports.module';
+import { SupportModule } from './support/support.module';
 import { TrainerStudentsModule } from './trainer-students/trainer-students.module';
 import { TrainersModule } from './trainers/trainers.module';
 import { UsersModule } from './users/users.module';
@@ -119,6 +122,9 @@ function resolvePrettyTransport(nodeEnv?: string) {
     LikesModule,
     FriendshipsModule,
     NotificationsModule,
+    MessagesModule,
+    RealtimeModule,
+    SupportModule,
     MediaModule,
     HealthModule,
   ],

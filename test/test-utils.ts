@@ -72,6 +72,8 @@ export async function cleanDatabase() {
     prisma.workoutPlan.deleteMany(),
     prisma.exerciseLibrary.deleteMany(),
     prisma.notification.deleteMany(),
+    prisma.directMessage.deleteMany(),
+    prisma.supportTicket.deleteMany(),
     prisma.friendship.deleteMany(),
     prisma.trainerStudent.deleteMany(),
     prisma.deviceToken.deleteMany(),
